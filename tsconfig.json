@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "allowJs": true,
+    "strict": true,
+    "noEmit": true,
+    "isolatedModules": true,
+    "paths": {
+      "@/*": ["./src/*"],
+      "@ui-lib": ["./src/ui-lib/src/components/index.ts"],
+      "@ui-lib/*": ["./src/ui-lib/src/components/*"],
+      "@ui-lib/hooks": ["./src/ui-lib/src/hooks/index.ts"],
+      "@ui-lib/styles/*": ["./src/ui-lib/src/styles/*"]
+    }
+  }
+}
