@@ -15,19 +15,16 @@ app.use(
 	"*",
 	cors({
 		origin: (origin) => {
-			// Allow all origins in development, configure for production
+			// Allow all origins in development
 			if (config.nodeEnv === "development") return origin;
-			// Add your production domains here
-			const allowedOrigins = [
-				"https://opencode.ai",
-				"https://app.opencode.ai",
-				/https:\/\/.*\.vercel\.app$/,
-			];
-			return allowedOrigins.some((allowed) =>
-				typeof allowed === "string" ? allowed === origin : allowed.test(origin),
-			)
-				? origin
-				: allowedOrigins[0];
+			// Check production domains
+			const allowedOrigins = ["https://opencode.ai", "https://app.opencode.ai"];
+			const vercelPattern = /https:\/\/.*\.vercel\.app$/;
+
+			if (allowedOrigins.includes(origin) || vercelPattern.test(origin)) {
+				return origin;
+			}
+			return allowedOrigins[0];
 		},
 		credentials: true,
 	}),

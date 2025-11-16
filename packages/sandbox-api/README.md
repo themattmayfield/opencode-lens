@@ -10,16 +10,38 @@ cd packages/sandbox-api
 bun install
 ```
 
-2. Configure environment:
+2. Create E2B template (one-time setup):
 ```bash
-cp .env.example .env
-# Edit .env and add your E2B_API_KEY
+# Install E2B CLI
+npm install -g @e2b/cli
+
+# Login to E2B
+e2b auth login
+
+# Build the OpenCode template
+e2b template build --name opencode-sandbox --dockerfile e2b.Dockerfile
+
+# Copy the template ID from output (e.g., tpl_abc123def456)
 ```
 
-3. Run development server:
+3. Configure environment:
+```bash
+cp .env.example .env
+# Edit .env and add:
+# E2B_API_KEY=your_e2b_api_key
+# E2B_TEMPLATE_ID=tpl_abc123def456  (from step 2)
+```
+
+4. Run development server:
 ```bash
 bun run dev
 ```
+
+### No Mock Mode
+
+This API always uses real E2B sandboxes. E2B credentials are required to run the server.
+
+Use the free tier for development: https://e2b.dev/pricing
 
 ## API Endpoints
 

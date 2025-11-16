@@ -3,16 +3,6 @@ import { BaseSandboxProvider } from "./provider";
 import type { SandboxConfig, SandboxInfo } from "../types";
 import { config } from "../config";
 
-interface E2BSandboxMetadata {
-	owner: string;
-	repo: string;
-	branch: string;
-	createdAt: number;
-	expiresAt: number;
-	serverUrl: string;
-	wsUrl: string;
-}
-
 export class E2BSandboxProvider extends BaseSandboxProvider {
 	private sandboxes: Map<string, { sandbox: Sandbox; info: SandboxInfo }> =
 		new Map();
@@ -35,8 +25,8 @@ export class E2BSandboxProvider extends BaseSandboxProvider {
 		};
 
 		try {
-			// Create E2B sandbox
-			const sandbox = await Sandbox.create({
+			// Create E2B sandbox with template ID
+			const sandbox = await Sandbox.create(config.e2bTemplateId, {
 				apiKey: config.e2bApiKey,
 				timeoutMs: config.sandbox.timeoutMs,
 				metadata: {
@@ -44,35 +34,63 @@ export class E2BSandboxProvider extends BaseSandboxProvider {
 					owner: sandboxConfig.owner,
 					repo: sandboxConfig.repo,
 					branch,
-				} as E2BSandboxMetadata,
+				},
 			});
+
+			console.log(
+				`Created E2B sandbox for ${sandboxConfig.owner}/${sandboxConfig.repo}`,
+			);
 
 			// Clone the repository
 			const repoUrl = `https://github.com/${sandboxConfig.owner}/${sandboxConfig.repo}.git`;
-			await sandbox.commands.run(
+			console.log(`Cloning ${repoUrl}...`);
+
+			const cloneResult = await sandbox.commands.run(
 				`git clone --depth 1 --branch ${branch} ${repoUrl} /home/user/repo || git clone --depth 1 ${repoUrl} /home/user/repo`,
 			);
 
-			// Install dependencies if needed (detect package.json, etc.)
-			const hasPackageJson = await sandbox.filesystem.exists(
-				"/home/user/repo/package.json",
+			if (cloneResult.exitCode !== 0) {
+				throw new Error(`Failed to clone repository: ${cloneResult.stderr}`);
+			}
+
+			console.log(`Cloned repository ${repoUrl}`);
+
+			// Check if package.json exists using shell command
+			const checkResult = await sandbox.commands.run(
+				"test -f /home/user/repo/package.json && echo 'exists' || echo 'missing'",
 			);
+			const hasPackageJson = checkResult.stdout.trim() === "exists";
+
 			if (hasPackageJson) {
 				console.log(
 					`Installing dependencies for ${sandboxConfig.owner}/${sandboxConfig.repo}`,
 				);
-				await sandbox.commands.run("cd /home/user/repo && bun install");
+				// Use sudo to run as root where bun is installed
+				const installResult = await sandbox.commands.run(
+					"cd /home/user/repo && sudo -E /root/.bun/bin/bun install",
+				);
+
+				if (installResult.exitCode !== 0) {
+					console.warn(
+						`Dependency installation had issues: ${installResult.stderr}`,
+					);
+				}
 			}
 
-			// Start OpenCode server (assuming it's pre-installed in the E2B template)
-			// For now, we'll expose a placeholder URL - you'll need to configure E2B template
+			// Start OpenCode server in the sandbox
 			const port = 4096;
-			const serverProcess = await sandbox.commands.run(
-				`cd /home/user/repo && opencode serve --port ${port} --host 0.0.0.0`,
+			console.log(`Starting OpenCode server on port ${port}...`);
+
+			// Start opencode serve in background (use sudo to access root's binaries)
+			await sandbox.commands.run(
+				`cd /home/user/repo && sudo -E /root/.bun/bin/opencode serve --port ${port} --hostname 0.0.0.0`,
 				{ background: true },
 			);
 
-			// Get the sandbox URL (E2B provides this)
+			// Wait for server to start
+			await new Promise((resolve) => setTimeout(resolve, 3000));
+
+			// Get the sandbox URL
 			const serverUrl = `https://${sandbox.getHost(port)}`;
 			const wsUrl = serverUrl.replace("https://", "wss://");
 
@@ -80,7 +98,11 @@ export class E2BSandboxProvider extends BaseSandboxProvider {
 			info.serverUrl = serverUrl;
 			info.wsUrl = wsUrl;
 
+			console.log(`Sandbox ready at ${serverUrl}`);
+
 			this.sandboxes.set(id, { sandbox, info });
+
+			console.log(`Sandbox ready: ${serverUrl}`);
 
 			// Auto-cleanup on expiration
 			setTimeout(() => {
@@ -91,6 +113,7 @@ export class E2BSandboxProvider extends BaseSandboxProvider {
 		} catch (error) {
 			info.status = "error";
 			info.error = error instanceof Error ? error.message : "Unknown error";
+			console.error(`Error creating sandbox:`, error);
 			throw error;
 		}
 	}
@@ -117,8 +140,9 @@ export class E2BSandboxProvider extends BaseSandboxProvider {
 		if (!entry) return;
 
 		try {
-			await entry.sandbox.close();
+			await entry.sandbox.kill();
 			entry.info.status = "terminated";
+			console.log(`Destroyed sandbox ${id}`);
 		} catch (error) {
 			console.error(`Error destroying sandbox ${id}:`, error);
 		} finally {
