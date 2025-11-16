@@ -109,6 +109,12 @@ export const { use: useSandbox, provider: SandboxProvider } =
 				}
 			};
 
+			// Retry sandbox creation after failure
+			const retry = () => {
+				console.log("Retrying sandbox creation...");
+				createSandbox();
+			};
+
 			// Auto-extend 5 minutes before expiration
 			createEffect(() => {
 				if (!state.sandbox || state.sandbox.status !== "ready") return;
@@ -139,6 +145,7 @@ export const { use: useSandbox, provider: SandboxProvider } =
 				},
 				extend,
 				destroy,
+				retry,
 			};
 		},
 	});

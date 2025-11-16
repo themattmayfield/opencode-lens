@@ -33,6 +33,7 @@ function SandboxContent(props: { children?: any }) {
 					owner={sandbox.state.sandbox?.owner ?? ""}
 					repo={sandbox.state.sandbox?.repo ?? ""}
 					error={sandbox.state.error}
+					onRetry={sandbox.retry}
 				/>
 			}
 		>
@@ -61,19 +62,8 @@ function SandboxSessionManager(props: { children?: any }) {
 			const newId = event.properties.info.id;
 			// Only update if we don't have a sessionId yet, or if it actually changed
 			if (!sessionId() || sessionId() !== newId) {
-				console.log("🔄 Session changed:", newId);
 				setSessionId(newId);
 			}
-		}
-		if (
-			event.type === "message.updated" &&
-			event.properties.info.role === "user"
-		) {
-			console.log("👤 User message updated:", {
-				id: event.properties.info.id,
-				hasSummary: !!event.properties.info.summary,
-				summary: event.properties.info.summary,
-			});
 		}
 	});
 

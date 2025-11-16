@@ -242,7 +242,18 @@ export const { use: useSync, provider: SyncProvider } = createSimpleContext({
 							query: { limit: 100 },
 						}),
 						sdk.client.session.todo({ path: { id: sessionID } }),
-						sdk.client.session.diff({ path: { id: sessionID } }),
+						// Gracefully handle 404 for diff endpoint (might not exist for new sessions)
+						sdk.client.session
+							.diff({ path: { id: sessionID } })
+							.catch((error) => {
+								// Only log if it's not a 404
+								if (error?.status !== 404) {
+									console.warn(
+										`Failed to fetch session diff: ${error?.message}`,
+									);
+								}
+								return { data: [] }; // Return empty array on failure
+							}),
 					]);
 					setStore(
 						produce((draft) => {

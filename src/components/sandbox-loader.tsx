@@ -7,13 +7,18 @@ interface SandboxLoaderProps {
 	owner: string;
 	repo: string;
 	error?: string;
+	onRetry?: () => void;
 }
 
 export function SandboxLoader(props: SandboxLoaderProps) {
 	const repoName = () => `${props.owner}/${props.repo}`;
 
 	const retry = () => {
-		window.location.reload();
+		if (props.onRetry) {
+			props.onRetry();
+		} else {
+			window.location.reload();
+		}
 	};
 
 	return (

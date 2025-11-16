@@ -13,7 +13,6 @@ import {
 	Code,
 	Tooltip,
 	ProgressCircle,
-	Button,
 } from "@ui-lib";
 import { FileIcon } from "@/ui-app";
 import { MessageProgress } from "@/components/message-progress";
@@ -64,18 +63,6 @@ export default function Page() {
 	});
 	let inputRef!: HTMLDivElement;
 	let messageScrollElement!: HTMLDivElement;
-
-	// Debug logging
-	createEffect(() => {
-		const active = session.messages.active();
-		console.log("📊 Session Debug:", {
-			sessionId: session.id,
-			userMessages: session.messages.user().length,
-			activeMessage: active,
-			activeMessageSummary: active?.summary,
-			allMessages: session.messages.all().length,
-		});
-	});
 
 	const MOD =
 		typeof navigator === "object" &&
