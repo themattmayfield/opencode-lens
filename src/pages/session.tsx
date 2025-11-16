@@ -573,6 +573,13 @@ export default function Page() {
 														const working = createMemo(
 															() => !message.summary?.body && !error(),
 														);
+														const assistantTextContent = createMemo(() => {
+															return assistantMessages()
+																.flatMap((m) => sync.data.part[m.id] || [])
+																.filter((p) => p?.type === "text")
+																.map((p) => p.text)
+																.join("");
+														});
 
 														// allowing time for the animations to finish
 														createEffect(() => {
@@ -634,21 +641,34 @@ export default function Page() {
 																						<Match when={true}>Response</Match>
 																					</Switch>
 																				</h2>
-																				<Show when={message.summary?.body}>
-																					{(summary) => (
-																						<Markdown
-																							classList={{
-																								"text-14-regular":
-																									!!message.summary?.diffs
-																										?.length,
-																								"[&>*]:fade-up-text":
-																									!message.summary?.diffs
-																										?.length,
-																							}}
-																							text={summary()}
-																						/>
-																					)}
-																				</Show>
+																				<Switch>
+																					<Match when={message.summary?.body}>
+																						{(summary) => (
+																							<Markdown
+																								classList={{
+																									"text-14-regular":
+																										!!message.summary?.diffs
+																											?.length,
+																									"[&>*]:fade-up-text":
+																										!message.summary?.diffs
+																											?.length,
+																								}}
+																								text={summary()}
+																							/>
+																						)}
+																					</Match>
+																					<Match when={assistantTextContent()}>
+																						{(text) => (
+																							<Markdown
+																								classList={{
+																									"text-14-regular": true,
+																									"[&>*]:fade-up-text": true,
+																								}}
+																								text={text()}
+																							/>
+																						)}
+																					</Match>
+																				</Switch>
 																			</div>
 																			<Accordion class="w-full" multiple>
 																				<For
